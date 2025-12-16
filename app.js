@@ -65,6 +65,60 @@ let enemies = [];             // Array musuh dengan status
 let foughtThisCycle = new Set(); // Track musuh yang sudah dilawan di cycle ini
 let battleHistory = [];       // Track semua pertarungan
 let gameStarted = false;      // Track apakah game sudah dimulai
+let stateHistory = [];        // Stack untuk undo (max 10 states)
+const MAX_HISTORY = 10;
+
+// ===== UNDO SYSTEM =====
+function saveState() {
+    const currentState = {
+        opponentsCycle: [...opponentsCycle],
+        currentStage,
+        currentSubRound,
+        enemies: JSON.parse(JSON.stringify(enemies)),
+        foughtThisCycle: new Set(foughtThisCycle),
+        battleHistory: [...battleHistory]
+    };
+
+    stateHistory.push(currentState);
+
+    // Limit history size
+    if (stateHistory.length > MAX_HISTORY) {
+        stateHistory.shift();
+    }
+
+    updateUndoButton();
+}
+
+function undo() {
+    if (stateHistory.length === 0) {
+        showToast('⚠️ Tidak ada yang bisa dibatalkan', 'warning');
+        return;
+    }
+
+    const previousState = stateHistory.pop();
+
+    // Restore state
+    opponentsCycle = previousState.opponentsCycle;
+    currentStage = previousState.currentStage;
+    currentSubRound = previousState.currentSubRound;
+    enemies = previousState.enemies;
+    foughtThisCycle = previousState.foughtThisCycle;
+    battleHistory = previousState.battleHistory;
+
+    saveSession();
+    updateUI();
+    updateUndoButton();
+    playSound('alert');
+    showToast('↩️ Aksi dibatalkan!', 'info');
+}
+
+function updateUndoButton() {
+    const btn = document.getElementById('undoBtn');
+    if (btn) {
+        btn.disabled = stateHistory.length === 0;
+        btn.style.opacity = stateHistory.length === 0 ? '0.5' : '1';
+    }
+}
 
 // ===== LOCAL STORAGE - AUTO SAVE =====
 function saveSession() {
@@ -180,6 +234,12 @@ function setupKeyboardShortcuts() {
         if (e.code === 'Space' && prediction.type === 'PVE') {
             e.preventDefault();
             skipCreepRound();
+        }
+
+        // Ctrl+Z to undo
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            undo();
         }
 
         // R to reset (with confirmation)
@@ -334,6 +394,9 @@ function getPrediction() {
 
 // ===== EVENT HANDLERS =====
 function handleFight(enemyName) {
+    // Save state before action for undo
+    saveState();
+
     const roundID = `${currentStage}-${currentSubRound}`;
     const prevPrediction = getPrediction();
 
@@ -379,6 +442,9 @@ function handleFight(enemyName) {
 }
 
 function handleEliminate(enemyName) {
+    // Save state before action for undo
+    saveState();
+
     const target = enemies.find(e => e.name === enemyName);
     if (target) {
         target.status = "dead";
@@ -392,6 +458,9 @@ function handleEliminate(enemyName) {
 }
 
 function skipCreepRound() {
+    // Save state before action for undo
+    saveState();
+
     advanceRound();
     saveSession();
     updateUI();

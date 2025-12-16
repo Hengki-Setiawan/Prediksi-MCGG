@@ -72,6 +72,7 @@
                 <span>⌨️</span>
                 <span><strong>1-7</strong> Lawan</span>
                 <span><strong>Space</strong> Skip</span>
+                <span><strong>Ctrl+Z</strong> Undo</span>
                 <span><strong>M</strong> Sound</span>
             </div>
 
@@ -211,6 +212,10 @@
 
                 <!-- Reset Section -->
                 <div class="reset-section">
+                    <button class="btn btn-undo" id="undoBtn" onclick="undo()" disabled>
+                        <span class="btn-icon">↩️</span>
+                        <span>Undo (Ctrl+Z)</span>
+                    </button>
                     <button class="btn btn-reset" onclick="resetGame()">
                         <span class="btn-icon">🔄</span>
                         <span>Reset (Ctrl+R)</span>
